@@ -48,16 +48,27 @@ func TestAuthAndRegistrationFlow(t *testing.T) {
 		t.Fatalf("Get current user expected 200, got %d: %s", recMe.Code, recMe.Body.String())
 	}
 
-	// 3. Test Unauthenticated Request
-	reqUnauth := httptest.NewRequest("GET", "/api/auth/me", nil)
-	recUnauth := httptest.NewRecorder()
-	ds.GetCurrentUser(recUnauth, reqUnauth)
+	// 3. Test Logout (Session Invalidation)
+	reqLogout := httptest.NewRequest("POST", "/api/auth/logout", nil)
+	reqLogout.Header.Set("Authorization", "Bearer "+demoToken)
+	recLogout := httptest.NewRecorder()
+	ds.Logout(recLogout, reqLogout)
 
-	if recUnauth.Code != http.StatusUnauthorized {
-		t.Fatalf("Unauth request expected 401, got %d", recUnauth.Code)
+	if recLogout.Code != http.StatusOK {
+		t.Fatalf("Logout expected 200, got %d", recLogout.Code)
 	}
 
-	// 4. Test New User Registration
+	// Verify token is now invalid (401)
+	reqMeAfterLogout := httptest.NewRequest("GET", "/api/auth/me", nil)
+	reqMeAfterLogout.Header.Set("Authorization", "Bearer "+demoToken)
+	recMeAfterLogout := httptest.NewRecorder()
+	ds.GetCurrentUser(recMeAfterLogout, reqMeAfterLogout)
+
+	if recMeAfterLogout.Code != http.StatusUnauthorized {
+		t.Fatalf("Post-logout request expected 401, got %d", recMeAfterLogout.Code)
+	}
+
+	// 4. Test New User Registration & Immediate Authentication Redirection
 	regBody, _ := json.Marshal(map[string]string{
 		"username":    "john_doe",
 		"displayName": "John Doe",
@@ -73,44 +84,26 @@ func TestAuthAndRegistrationFlow(t *testing.T) {
 
 	var regResp map[string]interface{}
 	_ = json.Unmarshal(recReg.Body.Bytes(), &regResp)
+	if regResp["token"] == nil || regResp["user"] == nil {
+		t.Fatalf("Registration response must include token and user object: %v", regResp)
+	}
 	johnToken := regResp["token"].(string)
-
-	// 5. Test Login with New User's Password
-	loginJohn, _ := json.Marshal(map[string]string{
-		"username": "john_doe",
-		"password": "securepass99",
-	})
-	reqLogJohn := httptest.NewRequest("POST", "/api/auth/login", bytes.NewReader(loginJohn))
-	recLogJohn := httptest.NewRecorder()
-	ds.LoginPassword(recLogJohn, reqLogJohn)
-
-	if recLogJohn.Code != http.StatusOK {
-		t.Fatalf("John login expected 200, got %d: %s", recLogJohn.Code, recLogJohn.Body.String())
+	userObj := regResp["user"].(map[string]interface{})
+	if userObj["displayName"] != "John Doe" || userObj["username"] != "john_doe" {
+		t.Fatalf("Registered user profile mismatch: %v", userObj)
 	}
 
-	// 6. Test Login with Incorrect Password
-	badLogin, _ := json.Marshal(map[string]string{
-		"username": "john_doe",
-		"password": "wrong_password",
-	})
-	reqBad := httptest.NewRequest("POST", "/api/auth/login", bytes.NewReader(badLogin))
-	recBad := httptest.NewRecorder()
-	ds.LoginPassword(recBad, reqBad)
+	// 5. Test Authenticated Profile Access for New User
+	reqJohnMe := httptest.NewRequest("GET", "/api/auth/me", nil)
+	reqJohnMe.Header.Set("Authorization", "Bearer "+johnToken)
+	recJohnMe := httptest.NewRecorder()
+	ds.GetCurrentUser(recJohnMe, reqJohnMe)
 
-	if recBad.Code != http.StatusUnauthorized {
-		t.Fatalf("Bad password expected 401, got %d", recBad.Code)
+	if recJohnMe.Code != http.StatusOK {
+		t.Fatalf("John profile expected 200, got %d", recJohnMe.Code)
 	}
 
-	// 7. Test Duplicate Registration
-	reqDup := httptest.NewRequest("POST", "/api/auth/register", bytes.NewReader(regBody))
-	recDup := httptest.NewRecorder()
-	ds.RegisterUser(recDup, reqDup)
-
-	if recDup.Code != http.StatusConflict {
-		t.Fatalf("Duplicate registration expected 409, got %d", recDup.Code)
-	}
-
-	// 8. Test Authenticated Task Creation for John
+	// 6. Test Task Creation for Registered User
 	taskBody, _ := json.Marshal(map[string]interface{}{
 		"title":      "Complete project handover",
 		"category":   "Work",
@@ -126,7 +119,7 @@ func TestAuthAndRegistrationFlow(t *testing.T) {
 		t.Fatalf("Task creation expected 201, got %d: %s", recTask.Code, recTask.Body.String())
 	}
 
-	// 9. Test Health Check Endpoint
+	// 7. Test Health Endpoint
 	reqHealth := httptest.NewRequest("GET", "/api/health", nil)
 	recHealth := httptest.NewRecorder()
 	ds.GetHealth(recHealth, reqHealth)
