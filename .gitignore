@@ -1,0 +1,23 @@
+# Binaries
+taskflow-server
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Runtime data & persistent databases
+tasks.json
+tasks.db
+data/
+*.tmp
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+
+# OS & Editor
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo

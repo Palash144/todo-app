@@ -1,0 +1,14 @@
+.git
+.gitignore
+.dockerignore
+__pycache__
+*.db
+tasks.db
+tasks.json
+taskflow-server
+*.log
+data/
+README.md
+todo.py
+server.py
+start.sh

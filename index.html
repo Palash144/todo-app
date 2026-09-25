@@ -1,0 +1,958 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TaskFlow - Modern Todo & Focus Management</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2310b981' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M9 11l3 3L22 4'/><path d='M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11'/></svg>" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <!-- Confetti Canvas -->
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- Top App Navigation Header -->
+    <header class="app-header">
+      <div class="brand-section">
+        <div class="logo-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </div>
+        <span class="brand-title">TaskFlow</span>
+        <span class="brand-badge">Pro</span>
+      </div>
+
+      <div class="header-center">
+        <div class="search-container">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="global-search" class="search-input" placeholder="Search tasks, notes, #tags..." autocomplete="off">
+          <span class="kbd-shortcut">/</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- User Account Pill -->
+        <button class="user-profile-btn" id="user-profile-btn" title="Account & Profile" onclick="app.openAccountModal()">
+          <div class="user-avatar-badge" id="user-avatar">D</div>
+          <span class="user-name-label" id="user-display-name">Demo User</span>
+        </button>
+
+        <!-- Pomodoro Header Mini-HUD -->
+        <div class="pomo-header-widget" id="pomo-mini-widget" title="Open Pomodoro Focus Timer (P)" onclick="app.openPomodoroModal()">
+          <span id="pomo-mini-icon">🍅</span>
+          <span class="pomo-time-display" id="pomo-mini-time">25:00</span>
+          <span class="pomo-task-badge-header" id="pomo-mini-task" style="display: none;">No Task</span>
+        </div>
+
+        <!-- View Switcher -->
+        <div class="view-switcher" role="tablist">
+          <button class="view-btn active" id="view-list-btn" title="List View (1)" onclick="app.setView('list')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="8" y1="6" x2="21" y2="6"></line>
+              <line x1="8" y1="12" x2="21" y2="12"></line>
+              <line x1="8" y1="18" x2="21" y2="18"></line>
+              <line x1="3" y1="6" x2="3.01" y2="6"></line>
+              <line x1="3" y1="12" x2="3.01" y2="12"></line>
+              <line x1="3" y1="18" x2="3.01" y2="18"></line>
+            </svg>
+            List
+          </button>
+          <button class="view-btn" id="view-kanban-btn" title="Kanban Board (2)" onclick="app.setView('kanban')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="5" height="18" rx="1"></rect>
+              <rect x="10" y="3" width="5" height="12" rx="1"></rect>
+              <rect x="17" y="3" width="5" height="15" rx="1"></rect>
+            </svg>
+            Board
+          </button>
+          <button class="view-btn" id="view-matrix-btn" title="Eisenhower Matrix (3)" onclick="app.setView('matrix')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="8" height="8" rx="1"></rect>
+              <rect x="13" y="3" width="8" height="8" rx="1"></rect>
+              <rect x="3" y="13" width="8" height="8" rx="1"></rect>
+              <rect x="13" y="13" width="8" height="8" rx="1"></rect>
+            </svg>
+            Matrix
+          </button>
+          <button class="view-btn" id="view-calendar-btn" title="Calendar View (4)" onclick="app.setView('calendar')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+            Calendar
+          </button>
+        </div>
+
+        <!-- Productivity Analytics Button -->
+        <button class="btn-icon" id="stats-modal-btn" title="Productivity Stats" onclick="app.openStatsModal()">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="20" x2="18" y2="10"></line>
+            <line x1="12" y1="20" x2="12" y2="4"></line>
+            <line x1="6" y1="20" x2="6" y2="14"></line>
+          </svg>
+        </button>
+
+        <!-- Keyboard Shortcuts Button -->
+        <button class="btn-icon" title="Keyboard Shortcuts (?)" onclick="app.openShortcutsModal()">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+        </button>
+
+        <!-- Data Backup / Export Button -->
+        <button class="btn-icon" title="Data Backup & Export" onclick="app.openDataModal()">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+        </button>
+
+        <!-- Dark / Light Theme Toggle -->
+        <button class="btn-icon" id="theme-toggle-btn" title="Toggle Dark/Light Mode (D)" onclick="app.toggleTheme()">
+          <svg id="theme-moon-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+          <svg id="theme-sun-icon" style="display:none;" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+        </button>
+
+        <!-- New Task Button -->
+        <button class="btn btn-primary" onclick="app.openTaskModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          New Task
+          <span class="kbd-shortcut" style="background: rgba(255,255,255,0.25); color: white; border: none;">N</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="app-container">
+      <!-- Left Sidebar -->
+      <aside class="sidebar">
+        <div>
+          <div class="sidebar-section-title">Views & Filters</div>
+          <ul class="nav-list" id="filter-list">
+            <li class="nav-item active" data-filter="all" onclick="app.setFilter('all')">
+              <span class="nav-label">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                  <polyline points="22,6 12,13 2,6"></polyline>
+                </svg>
+                All Tasks
+              </span>
+              <span class="nav-badge" id="count-all">0</span>
+            </li>
+            <li class="nav-item" data-filter="today" onclick="app.setFilter('today')">
+              <span class="nav-label">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                Today
+              </span>
+              <span class="nav-badge" id="count-today">0</span>
+            </li>
+            <li class="nav-item" data-filter="upcoming" onclick="app.setFilter('upcoming')">
+              <span class="nav-label">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                Upcoming
+              </span>
+              <span class="nav-badge" id="count-upcoming">0</span>
+            </li>
+            <li class="nav-item" data-filter="important" onclick="app.setFilter('important')">
+              <span class="nav-label">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+                Important
+              </span>
+              <span class="nav-badge" id="count-important">0</span>
+            </li>
+            <li class="nav-item" data-filter="overdue" onclick="app.setFilter('overdue')">
+              <span class="nav-label">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" color="#ef4444">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                Overdue
+              </span>
+              <span class="nav-badge" id="count-overdue" style="color: #ef4444; font-weight: 700;">0</span>
+            </li>
+            <li class="nav-item" data-filter="completed" onclick="app.setFilter('completed')">
+              <span class="nav-label">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                  <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+                Completed
+              </span>
+              <span class="nav-badge" id="count-completed">0</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Categories Section -->
+        <div>
+          <div class="sidebar-section-title">
+            <span>Categories</span>
+            <button class="task-action-btn" title="Add Category" onclick="app.openCategoryModal()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            </button>
+          </div>
+          <ul class="nav-list" id="category-list">
+            <!-- Rendered dynamically -->
+          </ul>
+        </div>
+
+        <!-- Tags Section -->
+        <div id="tags-sidebar-section">
+          <div class="sidebar-section-title">
+            <span>Tags</span>
+          </div>
+          <div id="sidebar-tags-container" style="display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0.2rem 0.4rem;">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- Productivity Progress Widget in Sidebar -->
+        <div class="stats-card-sidebar">
+          <div class="stats-progress-header">
+            <span>Today's Progress</span>
+            <span id="sidebar-progress-percent">0%</span>
+          </div>
+          <div class="progress-bar-container">
+            <div class="progress-bar-fill" id="sidebar-progress-fill" style="width: 0%;"></div>
+          </div>
+          <div class="streak-indicator">
+            <span>🔥</span>
+            <span id="streak-text">0 completed today</span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Workspace -->
+      <main class="main-workspace">
+        <!-- Quick Add Task Bar -->
+        <div class="quick-add-section">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--brand-primary)" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <input type="text" id="quick-add-input" class="quick-add-input" placeholder="Quick add... (e.g. 'Draft roadmap #work !high @tomorrow #deep-work ~45m')" autocomplete="off">
+          <div class="quick-add-badges">
+            <select id="quick-priority-select" class="quick-select">
+              <option value="medium">🟡 Medium</option>
+              <option value="urgent">🔴 Urgent</option>
+              <option value="high">🟠 High</option>
+              <option value="low">🟢 Low</option>
+            </select>
+            <select id="quick-category-select" class="quick-select">
+              <!-- Rendered dynamically -->
+            </select>
+            <button class="btn btn-primary" style="padding: 0.35rem 0.8rem; font-size: 0.8rem;" onclick="app.handleQuickAdd()">Add</button>
+          </div>
+        </div>
+
+        <!-- Workspace Title & Controls -->
+        <div class="workspace-header">
+          <div class="workspace-title-group">
+            <h1 class="workspace-title" id="workspace-title">All Tasks</h1>
+            <span class="workspace-count" id="task-count-badge">0 tasks</span>
+          </div>
+
+          <div class="workspace-controls">
+            <!-- Sort dropdown -->
+            <select id="sort-select" class="quick-select" onchange="app.setSort(this.value)">
+              <option value="due-asc">📅 Sort: Due Date (Earliest)</option>
+              <option value="due-desc">📅 Sort: Due Date (Latest)</option>
+              <option value="priority-desc">⚡ Sort: Priority (Urgent first)</option>
+              <option value="priority-asc">⚡ Sort: Priority (Low first)</option>
+              <option value="title-asc">🔤 Sort: Title (A-Z)</option>
+              <option value="created-desc">🕒 Sort: Recently Added</option>
+            </select>
+
+            <!-- Bulk Clear / Actions -->
+            <button class="btn btn-outline" style="font-size: 0.8rem; padding: 0.4rem 0.75rem;" onclick="app.clearCompletedTasks()">
+              Clear Completed
+            </button>
+          </div>
+        </div>
+
+        <!-- Task List View -->
+        <section id="view-list-container">
+          <div class="task-list" id="task-list">
+            <!-- Task items rendered dynamically -->
+          </div>
+        </section>
+
+        <!-- Kanban Board View -->
+        <section id="view-kanban-container" style="display: none;">
+          <div class="kanban-board">
+            <div class="kanban-column" data-status="todo" ondragover="app.handleDragOver(event)" ondrop="app.handleDrop(event, 'todo')">
+              <div class="kanban-col-header">
+                <div class="kanban-col-title">
+                  <span style="width: 8px; height: 8px; border-radius: 50%; background: #64748b;"></span>
+                  To Do
+                </div>
+                <span class="kanban-col-count" id="kanban-todo-count">0</span>
+              </div>
+              <div class="kanban-card-list" id="kanban-todo-list"></div>
+            </div>
+
+            <div class="kanban-column" data-status="inprogress" ondragover="app.handleDragOver(event)" ondrop="app.handleDrop(event, 'inprogress')">
+              <div class="kanban-col-header">
+                <div class="kanban-col-title">
+                  <span style="width: 8px; height: 8px; border-radius: 50%; background: #3b82f6;"></span>
+                  In Progress
+                </div>
+                <span class="kanban-col-count" id="kanban-inprogress-count">0</span>
+              </div>
+              <div class="kanban-card-list" id="kanban-inprogress-list"></div>
+            </div>
+
+            <div class="kanban-column" data-status="completed" ondragover="app.handleDragOver(event)" ondrop="app.handleDrop(event, 'completed')">
+              <div class="kanban-col-header">
+                <div class="kanban-col-title">
+                  <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></span>
+                  Completed
+                </div>
+                <span class="kanban-col-count" id="kanban-completed-count">0</span>
+              </div>
+              <div class="kanban-card-list" id="kanban-completed-list"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Eisenhower Matrix View -->
+        <section id="view-matrix-container" style="display: none;">
+          <div class="matrix-grid">
+            <!-- Q1: Urgent & Important -->
+            <div class="matrix-quadrant quadrant-q1">
+              <div class="matrix-header">
+                <span style="font-weight: 700; color: #ef4444; font-size: 0.9rem;">🔥 Do First (Urgent & Important)</span>
+                <span class="kanban-col-count" id="matrix-q1-count">0</span>
+              </div>
+              <div class="task-list" id="matrix-q1-list"></div>
+            </div>
+
+            <!-- Q2: Important, Not Urgent -->
+            <div class="matrix-quadrant quadrant-q2">
+              <div class="matrix-header">
+                <span style="font-weight: 700; color: #3b82f6; font-size: 0.9rem;">🎯 Schedule (Important, Not Urgent)</span>
+                <span class="kanban-col-count" id="matrix-q2-count">0</span>
+              </div>
+              <div class="task-list" id="matrix-q2-list"></div>
+            </div>
+
+            <!-- Q3: Urgent, Not Important -->
+            <div class="matrix-quadrant quadrant-q3">
+              <div class="matrix-header">
+                <span style="font-weight: 700; color: #f59e0b; font-size: 0.9rem;">⚡ Delegate (Urgent, Not Important)</span>
+                <span class="kanban-col-count" id="matrix-q3-count">0</span>
+              </div>
+              <div class="task-list" id="matrix-q3-list"></div>
+            </div>
+
+            <!-- Q4: Neither -->
+            <div class="matrix-quadrant quadrant-q4">
+              <div class="matrix-header">
+                <span style="font-weight: 700; color: #64748b; font-size: 0.9rem;">⏳ Eliminate / Later (Neither)</span>
+                <span class="kanban-col-count" id="matrix-q4-count">0</span>
+              </div>
+              <div class="task-list" id="matrix-q4-list"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- View 4: Interactive Calendar View -->
+        <section id="view-calendar-container" style="display: none;">
+          <div class="calendar-toolbar">
+            <div class="calendar-nav-left">
+              <button class="btn btn-outline btn-sm" onclick="app.calendarPrev()" title="Previous">◀ Prev</button>
+              <button class="btn btn-outline btn-sm" onclick="app.calendarToday()" title="Current Date">Today</button>
+              <button class="btn btn-outline btn-sm" onclick="app.calendarNext()" title="Next">Next ▶</button>
+              <h2 class="calendar-title" id="calendar-header-title">September 2026</h2>
+            </div>
+            <div class="calendar-nav-right">
+              <div class="calendar-mode-toggle">
+                <button class="cal-mode-btn active" id="cal-mode-month" onclick="app.setCalendarMode('month')">Month</button>
+                <button class="cal-mode-btn" id="cal-mode-week" onclick="app.setCalendarMode('week')">Week</button>
+              </div>
+            </div>
+          </div>
+          <div class="calendar-wrapper" id="calendar-wrapper">
+            <!-- Calendar grid rendered dynamically -->
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- Modal: User Account & Profile -->
+    <div class="modal-overlay" id="account-modal">
+      <div class="modal-content" style="max-width: 480px;">
+        <div class="modal-header">
+          <h2 class="modal-title">👤 User Account & Profile</h2>
+          <button class="task-action-btn" onclick="app.closeModals()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body" style="gap: 1.2rem;">
+          <!-- User info card -->
+          <div style="display: flex; align-items: center; gap: 1rem; background: var(--bg-input); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+            <div class="user-avatar-badge" style="width: 48px; height: 48px; font-size: 1.25rem;" id="modal-user-avatar">D</div>
+            <div>
+              <div style="font-weight: 800; font-size: 1.1rem;" id="modal-user-displayname">Demo User</div>
+              <div style="font-size: 0.8rem; color: var(--text-muted);" id="modal-user-username">@demo</div>
+            </div>
+          </div>
+
+          <!-- Focus Stats per user -->
+          <div class="stats-grid">
+            <div class="stats-card">
+              <div class="stats-number" id="user-total-pomos">0</div>
+              <div class="stats-label">🍅 Focus Sessions</div>
+            </div>
+            <div class="stats-card">
+              <div class="stats-number" style="color: #3b82f6;" id="user-total-focus-mins">0</div>
+              <div class="stats-label">⚡ Mins Focused</div>
+            </div>
+          </div>
+
+          <!-- Passkey section in account -->
+          <div style="border-top: 1px solid var(--border-subtle); padding-top: 1rem;">
+            <div class="form-label" style="margin-bottom: 0.4rem;">Registered Biometric Passkeys</div>
+            <div id="account-passkeys-list" style="display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.6rem;"></div>
+            <button class="btn btn-primary" style="width: 100%;" onclick="app.registerPasskeyForActiveUser()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 0 0 8 11a4 4 0 1 1 8 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0 0 15.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 0 0 4 11m0 0a8 8 0 0 0 16 0"></path>
+              </svg>
+              Add Passkey (Touch ID / Face ID)
+            </button>
+          </div>
+
+          <!-- Switch or Logout -->
+          <div style="border-top: 1px solid var(--border-subtle); padding-top: 1rem; display: flex; gap: 0.5rem;">
+            <button class="btn btn-outline" style="flex: 1;" onclick="app.openAuthModal()">Switch / Create Account</button>
+            <button class="btn btn-outline" style="color: #ef4444; border-color: #fca5a5;" onclick="app.logoutUser()">Log Out</button>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" onclick="app.closeModals()">Done</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Auth / Sign In / Create Account Gate -->
+    <div class="modal-overlay" id="auth-modal">
+      <div class="modal-content" style="max-width: 440px;">
+        <div class="modal-header">
+          <div style="display: flex; align-items: center; gap: 0.6rem;">
+            <div style="font-size: 1.5rem;">🛡️</div>
+            <div>
+              <h2 class="modal-title" id="auth-modal-title" style="font-size: 1.15rem; margin-bottom: 0.1rem;">TaskFlow Login</h2>
+              <div style="font-size: 0.75rem; color: var(--text-muted);" id="auth-modal-subtitle">Sign in to unlock your persistent workspace</div>
+            </div>
+          </div>
+          <button class="task-action-btn" id="auth-modal-close-btn" onclick="app.closeModals()" style="display: none;" title="Close">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body" style="gap: 1rem;">
+          <!-- Tabs: Sign In vs Create Account -->
+          <div class="auth-tabs">
+            <button class="auth-tab-btn active" id="tab-auth-login" onclick="app.switchAuthTab('login')">Sign In</button>
+            <button class="auth-tab-btn" id="tab-auth-signup" onclick="app.switchAuthTab('signup')">Create Account</button>
+          </div>
+
+          <!-- Sign In Panel -->
+          <div class="auth-panel" id="panel-auth-login">
+            <!-- 1-Click Biometric Passkey Login -->
+            <button type="button" class="passkey-biometric-btn" onclick="app.handlePasskeyLogin()">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 0 0 8 11a4 4 0 1 1 8 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0 0 15.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 0 0 4 11m0 0a8 8 0 0 0 16 0"></path>
+              </svg>
+              Sign In with Passkey (Touch ID / Face ID)
+            </button>
+
+            <div class="lock-divider">or with password</div>
+
+            <form id="login-form" onsubmit="app.handlePasswordLogin(event)">
+              <div class="form-group" style="margin-bottom: 0.75rem;">
+                <label class="form-label" for="login-username">Username</label>
+                <input type="text" id="login-username" class="form-input" placeholder="e.g. demo" required>
+              </div>
+
+              <div class="form-group" style="margin-bottom: 1rem;">
+                <label class="form-label" for="login-password">Password</label>
+                <input type="password" id="login-password" class="form-input" placeholder="••••••••" required>
+              </div>
+
+              <button type="submit" class="btn btn-primary" style="width: 100%; margin-bottom: 0.5rem;">Sign In</button>
+
+              <button type="button" class="btn btn-outline" style="width: 100%; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; gap: 0.4rem;" onclick="app.handleDemoLogin()">
+                <span>⚡</span> Continue as Demo User (@demo)
+              </button>
+            </form>
+          </div>
+
+          <!-- Sign Up Panel -->
+          <div class="auth-panel" id="panel-auth-signup" style="display: none;">
+            <form id="signup-form" onsubmit="app.handleCreateAccountWithPasskey(event)">
+              <div class="form-group" style="margin-bottom: 0.75rem;">
+                <label class="form-label" for="signup-username">Username *</label>
+                <input type="text" id="signup-username" class="form-input" placeholder="e.g. alex, dev_sarah" required>
+              </div>
+
+              <div class="form-group" style="margin-bottom: 0.75rem;">
+                <label class="form-label" for="signup-displayname">Display Name</label>
+                <input type="text" id="signup-displayname" class="form-input" placeholder="e.g. Alex Johnson">
+              </div>
+
+              <div class="form-group" style="margin-bottom: 1rem;">
+                <label class="form-label" for="signup-password">Password (Optional)</label>
+                <input type="password" id="signup-password" class="form-input" placeholder="Set password fallback...">
+              </div>
+
+              <button type="submit" class="passkey-biometric-btn" style="margin-bottom: 0.5rem;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 0 0 8 11a4 4 0 1 1 8 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0 0 15.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 0 0 4 11m0 0a8 8 0 0 0 16 0"></path>
+                </svg>
+                Create Account with Passkey
+              </button>
+
+              <button type="button" class="btn btn-outline" style="width: 100%; font-size: 0.8rem;" onclick="app.handleCreateAccountPasswordOnly()">
+                Create with Password only
+              </button>
+            </form>
+          </div>
+
+          <div id="auth-error-msg" style="color: #ef4444; font-size: 0.8rem; font-weight: 600; display: none; text-align: center;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Pomodoro Focus Timer -->
+    <div class="modal-overlay" id="pomodoro-modal">
+      <div class="modal-content" style="max-width: 460px;">
+        <div class="modal-header">
+          <h2 class="modal-title">🍅 Pomodoro Focus Timer</h2>
+          <button class="task-action-btn" onclick="app.closeModals()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body pomo-modal-container">
+          <!-- Interval Mode Selector -->
+          <div class="pomo-tabs">
+            <button class="pomo-tab-btn active work" id="pomo-tab-work" onclick="app.switchPomodoroMode('work')">Focus (25m)</button>
+            <button class="pomo-tab-btn break" id="pomo-tab-short" onclick="app.switchPomodoroMode('short_break')">Short Break (5m)</button>
+            <button class="pomo-tab-btn break" id="pomo-tab-long" onclick="app.switchPomodoroMode('long_break')">Long Break (15m)</button>
+          </div>
+
+          <!-- Circular SVG Countdown Ring -->
+          <div class="pomo-timer-ring-container">
+            <svg class="pomo-svg-ring" viewBox="0 0 220 220">
+              <circle class="pomo-ring-bg" cx="110" cy="110" r="95"></circle>
+              <circle class="pomo-ring-progress" id="pomo-svg-progress" cx="110" cy="110" r="95" stroke-dasharray="596.9" stroke-dashoffset="0"></circle>
+            </svg>
+            <div class="pomo-timer-inner">
+              <div class="pomo-time-big" id="pomo-display-time">25:00</div>
+              <div class="pomo-mode-label" id="pomo-display-label">Deep Work</div>
+            </div>
+          </div>
+
+          <!-- Linked Task Selector -->
+          <div class="pomo-task-info">
+            <div style="display: flex; align-items: center; gap: 0.5rem; overflow: hidden;">
+              <span style="font-size: 1rem;">🎯</span>
+              <div style="text-align: left; overflow: hidden;">
+                <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Focusing on</div>
+                <div class="pomo-task-name" id="pomo-active-task-name">No Task Selected</div>
+              </div>
+            </div>
+            <select id="pomo-task-picker" class="quick-select" style="max-width: 140px; font-size: 0.75rem;" onchange="app.selectPomodoroTask(this.value)">
+              <option value="">Select Task...</option>
+            </select>
+          </div>
+
+          <!-- Timer Controls -->
+          <div class="pomo-controls">
+            <button class="pomo-btn-secondary" title="Reset Timer" onclick="app.resetPomodoro()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                <path d="M3 3v5h5"></path>
+              </svg>
+            </button>
+
+            <button class="pomo-btn-primary" id="pomo-play-btn" title="Start Focus" onclick="app.togglePomodoro()">
+              <svg id="pomo-play-icon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+              </svg>
+              <svg id="pomo-pause-icon" style="display:none;" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="6" y="4" width="4" height="16"></rect>
+                <rect x="14" y="4" width="4" height="16"></rect>
+              </svg>
+            </button>
+
+            <button class="pomo-btn-secondary" title="Skip to next session" onclick="app.skipPomodoro()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="5 4 15 12 5 20 5 4"></polygon>
+                <line x1="19" y1="5" x2="19" y2="19"></line>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Session Statistics Strip -->
+          <div class="pomo-stats-strip">
+            <div>
+              <span style="font-weight: 700; color: var(--text-primary);" id="pomo-completed-today-count">0</span>
+              <span> sessions today</span>
+            </div>
+            <div>
+              <span style="font-weight: 700; color: var(--text-primary);" id="pomo-total-focus-minutes">0</span>
+              <span> mins focused</span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="app.closeModals()">Minimize</button>
+          <button type="button" class="btn btn-primary" onclick="app.closeModals()">Done</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Create / Edit Task -->
+    <div class="modal-overlay" id="task-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title" id="task-modal-title">New Task</h2>
+          <button class="task-action-btn" onclick="app.closeModals()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <form id="task-form" onsubmit="app.handleSaveTask(event)">
+          <div class="modal-body">
+            <input type="hidden" id="task-id">
+            
+            <div class="form-group">
+              <label class="form-label" for="task-title-input">Task Title *</label>
+              <input type="text" id="task-title-input" class="form-input" placeholder="What needs to be done?" required autofocus>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="task-notes-input">Description / Notes (Supports Markdown: **bold**, `code`, - lists, [links](url))</label>
+              <textarea id="task-notes-input" class="form-textarea" rows="3" placeholder="Add detailed notes, markdown formatting, or references..."></textarea>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="task-category-select">Category</label>
+                <select id="task-category-select" class="form-select">
+                  <!-- Rendered dynamically -->
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="task-priority-select">Priority</label>
+                <select id="task-priority-select" class="form-select">
+                  <option value="urgent">🔴 Urgent (Do Now)</option>
+                  <option value="high">🟠 High Priority</option>
+                  <option value="medium" selected>🟡 Medium Priority</option>
+                  <option value="low">🟢 Low Priority</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="task-tags-input">Tags (comma-separated or #tags)</label>
+                <input type="text" id="task-tags-input" class="form-input" placeholder="e.g. #deep-work, #frontend, #client">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="task-estimate-input">Estimated Duration (Minutes)</label>
+                <input type="number" id="task-estimate-input" class="form-input" placeholder="e.g. 25, 45, 60" min="5" step="5">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="task-due-date">Due Date</label>
+                <input type="date" id="task-due-date" class="form-input">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="task-due-time">Due Time (Optional)</label>
+                <input type="time" id="task-due-time" class="form-input">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="task-recurrence-select">Repeat / Recurrence</label>
+                <select id="task-recurrence-select" class="form-select">
+                  <option value="none" selected>Never (One-time)</option>
+                  <option value="daily">🔁 Every Day</option>
+                  <option value="weekdays">🔁 Every Weekday (Mon-Fri)</option>
+                  <option value="weekly">🔁 Every Week</option>
+                  <option value="biweekly">🔁 Every 2 Weeks</option>
+                  <option value="monthly">🔁 Every Month</option>
+                  <option value="yearly">🔁 Every Year</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Subtasks Builder inside Modal -->
+            <div class="form-group">
+              <label class="form-label">Subtasks / Checklist</label>
+              <div class="subtask-builder-list" id="modal-subtask-list"></div>
+              <div style="display: flex; gap: 0.5rem; margin-top: 0.4rem;">
+                <input type="text" id="new-subtask-input" class="form-input" style="flex:1;" placeholder="Add subtask...">
+                <button type="button" class="btn btn-outline" onclick="app.addModalSubtask()">Add</button>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline" onclick="app.closeModals()">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="task-save-btn">Save Task</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal: Add Category -->
+    <div class="modal-overlay" id="category-modal">
+      <div class="modal-content" style="max-width: 420px;">
+        <div class="modal-header">
+          <h2 class="modal-title">New Category</h2>
+          <button class="task-action-btn" onclick="app.closeModals()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <form id="category-form" onsubmit="app.handleSaveCategory(event)">
+          <div class="modal-body">
+            <div class="form-group">
+              <label class="form-label" for="category-name-input">Category Name *</label>
+              <input type="text" id="category-name-input" class="form-input" placeholder="e.g., Marketing, Health, Finance" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="category-color-input">Color Tag</label>
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <input type="color" id="category-color-input" value="#10b981" style="width: 44px; height: 36px; border: none; border-radius: 6px; cursor: pointer; background: transparent;">
+                <span style="font-size: 0.8rem; color: var(--text-secondary);">Pick a color for the category dot</span>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline" onclick="app.closeModals()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Create Category</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal: Productivity Stats & Analytics -->
+    <div class="modal-overlay" id="stats-modal">
+      <div class="modal-content" style="max-width: 580px;">
+        <div class="modal-header">
+          <h2 class="modal-title">📊 Productivity Analytics</h2>
+          <button class="task-action-btn" onclick="app.closeModals()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="stats-grid">
+            <div class="stats-card">
+              <div class="stats-number" id="stats-total">0</div>
+              <div class="stats-label">Total Tasks</div>
+            </div>
+            <div class="stats-card">
+              <div class="stats-number" id="stats-completed" style="color: #10b981;">0</div>
+              <div class="stats-label">Completed Tasks</div>
+            </div>
+            <div class="stats-card">
+              <div class="stats-number" id="stats-pending" style="color: #f59e0b;">0</div>
+              <div class="stats-label">Pending Tasks</div>
+            </div>
+            <div class="stats-card">
+              <div class="stats-number" id="stats-overdue" style="color: #ef4444;">0</div>
+              <div class="stats-label">Overdue Tasks</div>
+            </div>
+          </div>
+
+          <div style="margin-top: 1rem;">
+            <div style="display: flex; justify-content: space-between; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.4rem;">
+              <span>Overall Completion Rate</span>
+              <span id="stats-rate">0%</span>
+            </div>
+            <div class="progress-bar-container" style="height: 12px;">
+              <div class="progress-bar-fill" id="stats-rate-fill" style="width: 0%;"></div>
+            </div>
+          </div>
+
+          <div style="margin-top: 1.25rem;">
+            <div class="form-label" style="margin-bottom: 0.5rem;">Tasks by Priority</div>
+            <div id="stats-priority-breakdown" style="display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.85rem;"></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" onclick="app.closeModals()">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Keyboard Shortcuts -->
+    <div class="modal-overlay" id="shortcuts-modal">
+      <div class="modal-content" style="max-width: 460px;">
+        <div class="modal-header">
+          <h2 class="modal-title">⌨️ Keyboard Shortcuts</h2>
+          <button class="task-action-btn" onclick="app.closeModals()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body" style="gap: 0.8rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.4rem;">
+            <span style="font-size: 0.875rem;">Create New Task</span>
+            <span class="kbd-shortcut">N</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.4rem;">
+            <span style="font-size: 0.875rem;">Focus Global Search</span>
+            <span class="kbd-shortcut">/</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.4rem;">
+            <span style="font-size: 0.875rem;">Toggle Pomodoro Focus Modal</span>
+            <span class="kbd-shortcut">P</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.4rem;">
+            <span style="font-size: 0.875rem;">Toggle Dark / Light Theme</span>
+            <span class="kbd-shortcut">D</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.4rem;">
+            <span style="font-size: 0.875rem;">Switch to List View</span>
+            <span class="kbd-shortcut">1</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.4rem;">
+            <span style="font-size: 0.875rem;">Switch to Board View</span>
+            <span class="kbd-shortcut">2</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.4rem;">
+            <span style="font-size: 0.875rem;">Switch to Matrix View</span>
+            <span class="kbd-shortcut">3</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.4rem;">
+            <span style="font-size: 0.875rem;">Switch to Calendar View</span>
+            <span class="kbd-shortcut">4</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.4rem;">
+            <span style="font-size: 0.875rem;">Close Any Modal / Blur</span>
+            <span class="kbd-shortcut">Escape</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 0.875rem;">Show Shortcuts Help</span>
+            <span class="kbd-shortcut">?</span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" onclick="app.closeModals()">Got it</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Data Backup & Management -->
+    <div class="modal-overlay" id="data-modal">
+      <div class="modal-content" style="max-width: 480px;">
+        <div class="modal-header">
+          <h2 class="modal-title">💾 Backup & Data Management</h2>
+          <button class="task-action-btn" onclick="app.closeModals()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body" style="gap: 1rem;">
+          <div>
+            <div style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.25rem;">Export Data</div>
+            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.6rem;">Download your tasks, categories, and settings as a JSON file or CSV.</p>
+            <div style="display: flex; gap: 0.5rem;">
+              <button class="btn btn-outline" onclick="app.exportData('json')">Export as JSON</button>
+              <button class="btn btn-outline" onclick="app.exportData('csv')">Export as CSV</button>
+            </div>
+          </div>
+
+          <div style="border-top: 1px solid var(--border-subtle); padding-top: 1rem;">
+            <div style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.25rem;">Import Data</div>
+            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.6rem;">Restore your tasks from a previous JSON backup.</p>
+            <input type="file" id="import-file-input" accept=".json" style="display: none;" onchange="app.importData(event)">
+            <button class="btn btn-outline" onclick="document.getElementById('import-file-input').click()">Select JSON File to Import</button>
+          </div>
+
+          <div style="border-top: 1px solid var(--border-subtle); padding-top: 1rem;">
+            <div style="font-weight: 600; font-size: 0.9rem; color: #ef4444; margin-bottom: 0.25rem;">Reset Sample Data</div>
+            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.6rem;">Reload default starter tasks and categories.</p>
+            <button class="btn btn-outline" style="color: #ef4444; border-color: #fca5a5;" onclick="app.resetSampleData()">Reset to Starter Tasks</button>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" onclick="app.closeModals()">Done</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Application Logic -->
+    <script src="app.js"></script>
+      <!-- Toast Notifications Container -->
+    <div id="toast-container" class="toast-container"></div>
+  </body>
+</html>

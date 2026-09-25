@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: taskflow-app
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - DATA_PATH=/app/data/tasks.json
+      - REDIS_ADDR=redis:6379
+      - SCYLLA_HOSTS=scylladb:9042
+      - SCYLLA_KEYSPACE=taskflow
+      - IN_CONTAINER=true
+    volumes:
+      - taskflow_data:/app/data
+    depends_on:
+      redis:
+        condition: service_healthy
+      scylladb:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8080/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  redis:
+    image: redis:7-alpine
+    container_name: taskflow-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  scylladb:
+    image: scylladb/scylla:5.4
+    container_name: taskflow-scylladb
+    restart: unless-stopped
+    command: ["--smp", "1", "--memory", "1G", "--overprovisioned", "1", "--api-address", "0.0.0.0"]
+    ports:
+      - "9042:9042"
+      - "10000:10000"
+    volumes:
+      - scylla_data:/var/lib/scylla
+
+volumes:
+  taskflow_data:
+  redis_data:
+  scylla_data:
